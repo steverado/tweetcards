@@ -1,12 +1,15 @@
 # tweetcards
 
-Repurpose top-performing X posts into Instagram carousels for HumanPost.
+Repurpose top-performing X **meme posts** into Instagram carousels for HumanPost.
 
-Pipeline: **X analytics CSV → normalize → screenshot-style slides → host on GitHub/jsDelivr → queue to HumanPost.**
+Pipeline: **X analytics CSV → normalize → fetch each post's media → screenshot-style
+slides (real meme image embedded) → host on GitHub/jsDelivr → queue to HumanPost.**
 
-Slides are rendered to look like a real screenshot someone cropped — X's own native
-palette, iPhone-class proportions, no card chrome — because screenshots outperform
-obviously-designed cards.
+These accounts post image memes, not text tweets, so each slide is a screenshot of the
+actual post — header, the meme image, real timestamp + Views, full action row — built to
+look like someone cropped it off their phone (X's native palette, iPhone-class
+proportions, no card chrome). The media is pulled by post ID from X's public
+syndication endpoint, so no paid API tier is needed.
 
 ## Accounts
 
@@ -42,15 +45,18 @@ python x_csv_to_posts.py oldelders_export.csv      --account OldEldersonline --a
 Retweets and replies are dropped automatically. Output: `posts.json`.
 
 **2. Render slides** — filters to the last 30 days, ranks by impressions per account,
-chunks into carousels (2–10 slides), screenshots each at 1080×1350:
+takes the top `--top` (default 10), fetches each post's meme image, and screenshots
+each as a tweet at 1080×1350:
 
 ```bash
-python render_cards.py                 # posts.json + accounts.json
-python render_cards.py --posts posts.sample.json --min-per-carousel 1   # demo
+python render_cards.py                 # top 10 per account, last 30 days
+python render_cards.py --top 4         # fewer per account
+python render_cards.py --days 0        # no date filter (all-time top)
 ```
 
-Output: `out/<handle>/*.png` + `manifest.json` (slide order, post IDs, impressions,
-source URLs, plus empty `caption` / `media_urls` to fill).
+Fetched media is cached in `media/` (gitignored). Output: `out/<handle>/*.png` +
+`manifest.json` (slide order, post IDs, impressions, source URLs, plus empty
+`caption` / `media_urls` to fill). Posts with no image and no caption are skipped.
 
 **3. Host the images** on GitHub + jsDelivr (needs a GitHub remote on this repo).
 URLs are pinned to the commit SHA so they're immutable:
@@ -80,10 +86,13 @@ Key: create one at humanpost.co with scopes `accounts:read`, `posts:read`,
 `posts:write`, `analytics:read`. Keep it out of git (it lives in the connector
 config, not this repo).
 
-## To-do before first real run
+## Status / to-do
 
-- [ ] Drop real profile images into `avatars/` (`techbromemes.png`, `LiteralMem3s.png`,
-      `OldEldersonline.png`) — the initials circle is the one remaining fake tell.
-- [ ] Export the three accounts' analytics CSVs and run step 1.
-- [ ] Add a GitHub remote for step 3.
+- [x] Real profile avatars in `avatars/` for all 3 accounts.
+- [x] techbromemes + LiteralMem3s CSVs processed; image pipeline verified end to end.
+- [ ] Export **OldEldersonline**'s analytics CSV and run step 1 (`--append`).
+- [ ] Add a **public** GitHub remote for step 3 (jsDelivr only serves public repos).
 - [ ] Add the HumanPost connector and verify `list_accounts`.
+- [ ] Fill each carousel's `caption` in `manifest.json` before queueing.
+
+Note: multi-image posts currently use the first image only. Videos use their poster frame.
