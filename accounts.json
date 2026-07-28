@@ -1,0 +1,26 @@
+{
+  "techbromemes": {
+    "display_name": "Tech Bro Memes",
+    "handle": "techbromemes",
+    "theme": "dark",
+    "avatar": "avatars/techbromemes.png",
+    "min_impressions": 0,
+    "verified": false
+  },
+  "LiteralMem3s": {
+    "display_name": "literal memes",
+    "handle": "LiteralMem3s",
+    "theme": "dim",
+    "avatar": "avatars/LiteralMem3s.png",
+    "min_impressions": 0,
+    "verified": false
+  },
+  "OldEldersonline": {
+    "display_name": "old people online",
+    "handle": "OldEldersonline",
+    "theme": "light",
+    "avatar": "avatars/OldEldersonline.png",
+    "min_impressions": 0,
+    "verified": false
+  }
+}

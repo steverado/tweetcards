@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+# generated output
+out/
+posts.json
+manifest.json
+# keep the samples and avatars tracked
+!posts.sample.json
