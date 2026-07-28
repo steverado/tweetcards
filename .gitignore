@@ -2,9 +2,7 @@
 __pycache__/
 *.pyc
 .env
-# generated output
-out/
+# raw fetched media + normalized posts are intermediate; slides in out/ are what
+# gets hosted on jsDelivr, so out/ and manifest.json stay tracked.
+media/
 posts.json
-manifest.json
-# keep the samples and avatars tracked
-!posts.sample.json

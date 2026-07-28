@@ -60,6 +60,14 @@ def is_retweet_or_reply(text):
     return t.startswith("RT @") or t.startswith("@")
 
 
+def clean_text(text):
+    """Strip trailing t.co media links (image/video posts carry a bare t.co URL
+    that X renders as the attached media, not as body text). Returns cleaned text;
+    empty means an image-only post with no caption -> not a text card."""
+    t = re.sub(r"https?://t\.co/\w+", "", text or "")
+    return re.sub(r"[ \t]+\n", "\n", t).strip()
+
+
 def norm_url(row_url, handle, pid):
     if row_url and str(row_url).startswith("http"):
         return str(row_url).strip()
@@ -110,10 +118,13 @@ def main():
     out = []
     dropped = 0
     for i, r in enumerate(rows):
-        text = (r.get(colmap["text"]) or "").strip()
-        if not text or is_retweet_or_reply(text):
+        raw = (r.get(colmap["text"]) or "").strip()
+        if is_retweet_or_reply(raw):
             dropped += 1
             continue
+        # Keep image/video posts (empty caption after stripping the t.co media
+        # link) — the meme IS the image; render_cards.py fetches the media.
+        text = clean_text(raw)
         pid = (r.get(colmap.get("id", "")) or "").strip() or ("%s_%d" % (args.account, i))
         out.append({
             "id": pid,
@@ -135,7 +146,7 @@ def main():
         out = merged
 
     out_path.write_text(json.dumps(out, indent=2, ensure_ascii=False))
-    print("Wrote %d post(s) for @%s -> %s (dropped %d retweet/reply/empty)"
+    print("Wrote %d post(s) for @%s -> %s (dropped %d retweet/reply)"
           % (len([p for p in out if p.get("account") == args.account]),
              args.account, args.out, dropped))
 

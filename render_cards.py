@@ -23,11 +23,63 @@ import argparse
 import base64
 import datetime as dt
 import json
+import math
 import os
 import sys
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+MEDIA_DIR = ROOT / "media"
+UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+
+
+def _syndication_token(pid):
+    return (str((int(pid) / 1e15) * math.pi)).replace(".", "").replace("0", "")[:15] or "x"
+
+
+def fetch_tweet(pid):
+    """Pull a post's media + real timestamp from X's public syndication endpoint
+    (no API tier needed). Downloads the image to media/<id>.<ext> and caches it.
+    Returns dict {media_path, created_at, caption} or {} on failure."""
+    MEDIA_DIR.mkdir(exist_ok=True)
+    cache = MEDIA_DIR / (str(pid) + ".json")
+    if cache.exists():
+        meta = json.loads(cache.read_text())
+        mp = meta.get("media_path")
+        if not mp or (ROOT / mp).exists():
+            return meta
+    url = ("https://cdn.syndication.twimg.com/tweet-result?id=%s&token=%s&lang=en"
+           % (pid, _syndication_token(pid)))
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": UA})
+        data = json.loads(urllib.request.urlopen(req, timeout=25).read())
+    except Exception as e:
+        print("  ! syndication failed for %s: %s" % (pid, e))
+        return {}
+    media = data.get("mediaDetails") or []
+    media_path = None
+    if media:
+        murl = media[0].get("media_url_https")
+        if len(media) > 1:
+            print("  note: post %s has %d images; using the first." % (pid, len(media)))
+        if murl:
+            ext = os.path.splitext(murl.split("?")[0])[1] or ".jpg"
+            dest = MEDIA_DIR / (str(pid) + ext)
+            try:
+                full = murl + "?format=" + ext.lstrip(".") + "&name=large"
+                req = urllib.request.Request(full, headers={"User-Agent": UA})
+                dest.write_bytes(urllib.request.urlopen(req, timeout=25).read())
+                media_path = str(dest.relative_to(ROOT))
+            except Exception as e:
+                print("  ! media download failed for %s: %s" % (pid, e))
+    meta = {
+        "media_path": media_path,
+        "created_at": data.get("created_at", ""),
+        "caption": data.get("text", ""),
+    }
+    cache.write_text(json.dumps(meta))
+    return meta
 
 # X's own native palette — no invented colors.
 THEMES = {
@@ -59,6 +111,28 @@ VERIFIED_BADGE = "M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.
 CANVAS_W, CANVAS_H = 1080, 1350
 CSS_W, CSS_H = 360, 450          # 1080x1350 at deviceScaleFactor 3
 SCALE = 3
+
+# Run AFTER images decode (via page.evaluate): shrink caption like X does
+# (23 -> 20 -> 17), then cap the meme image height so the whole tweet — header
+# through action row — fits the frame as a cropped screenshot would.
+FIT_JS = """() => {
+  const AVAIL = %d;
+  const tweet = document.querySelector('.tweet');
+  const body = document.getElementById('body');
+  const img = document.getElementById('media');
+  if (body) {
+    for (const s of [23,20,17]) {
+      body.style.fontSize = s + 'px';
+      if (tweet.offsetHeight <= AVAIL) break;
+    }
+  }
+  if (img) {
+    let cap = 392;
+    img.style.maxHeight = cap + 'px';
+    while (tweet.offsetHeight > AVAIL && cap > 110) { cap -= 8; img.style.maxHeight = cap + 'px'; }
+  }
+  return tweet.offsetHeight;
+}""" % (CSS_H - 20)
 
 
 def esc(s):
@@ -118,28 +192,53 @@ def icon_svg(name):
     return ('<svg viewBox="0 0 24 24"><path d="%s"></path></svg>' % ICONS[name])
 
 
-def fmt_meta(created_at, impressions):
+def parse_date(created_at):
+    """X's CSV export uses 'Sun, Jul 26, 2026'. Also accept ISO for the sample."""
+    s = (created_at or "").strip()
+    if not s:
+        return None
+    for fmt in ("%a, %b %d, %Y", "%b %d, %Y", "%Y-%m-%d"):
+        try:
+            return dt.datetime.strptime(s, fmt).replace(tzinfo=dt.timezone.utc)
+        except ValueError:
+            pass
     try:
-        t = dt.datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-        time_s = t.strftime("%I:%M %p").lstrip("0")
-        date_s = t.strftime("%b ") + str(t.day) + t.strftime(", %Y")
-    except Exception:
-        time_s, date_s = "", ""
-    parts = [p for p in (time_s, date_s) if p]
+        return dt.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def fmt_meta(created_at, impressions):
+    t = parse_date(created_at)
+    has_time = ("T" in (created_at or "")) or (":" in (created_at or ""))
+    parts = []
+    if t:
+        if has_time:
+            parts.append(t.strftime("%I:%M %p").lstrip("0"))
+        parts.append(t.strftime("%b ") + str(t.day) + t.strftime(", %Y"))
     left = " · ".join(parts)
-    return ('%s · <span class="views">%s</span> Views'
-            % (left, humanize(impressions))) if left else \
-           ('<span class="views">%s</span> Views' % humanize(impressions))
+    if left:
+        return ('%s · <span class="views">%s</span> Views'
+                % (left, humanize(impressions)))
+    return '<span class="views">%s</span> Views' % humanize(impressions)
 
 
-def build_html(post, acct):
+def build_html(post, acct, tweet):
     theme = THEMES[acct["theme"]]
     badge = ""
     if acct.get("verified"):
         badge = ('<svg class="badge" viewBox="0 0 24 24"><path d="%s"></path></svg>'
                  % VERIFIED_BADGE)
-    body = linkify(post["text"])
-    meta = fmt_meta(post.get("created_at", ""), post.get("impressions", 0))
+    caption = (post.get("text") or "").strip()
+    body = ('<div class="body" id="body">%s</div>' % linkify(caption)) if caption else ""
+    media = ""
+    if tweet.get("media_path"):
+        uri = data_uri(tweet["media_path"])
+        if uri:
+            media = '<div class="media"><img id="media" src="%s"></div>' % uri
+    # Prefer the syndication timestamp (has time-of-day) over the CSV date.
+    created = tweet.get("created_at") or post.get("created_at", "")
+    meta = fmt_meta(created, post.get("impressions", 0))
     actions = ""
     counts = {
         "reply": post.get("replies", 0),
@@ -175,6 +274,9 @@ body{width:@CW@px;height:@CH@px;background:var(--bg);color:var(--text);
 .body{margin-top:12px;font-size:23px;line-height:1.35;color:var(--text);
   white-space:normal;word-wrap:break-word;overflow-wrap:anywhere;}
 .lnk{color:var(--link);}
+.media{margin-top:12px;display:flex;justify-content:center;}
+.media img{max-width:100%;height:auto;border-radius:16px;border:1px solid var(--border);
+  object-fit:contain;display:block;}
 .meta{margin-top:16px;color:var(--muted);font-size:15px;}
 .meta .views{color:var(--text);font-weight:700;}
 .rule{border-top:1px solid var(--border);margin-top:14px;}
@@ -192,23 +294,12 @@ body{width:@CW@px;height:@CH@px;background:var(--bg);color:var(--text);
     </div>
     <div class="menu">&#8943;</div>
   </div>
-  <div class="body" id="body">@BODY@</div>
+  @BODY@
+  @MEDIA@
   <div class="meta">@META@</div>
   <div class="rule"></div>
   <div class="actions">@ACTIONS@</div>
 </div>
-<script>
-// Auto-shrink body the way X does on longer posts: 23 -> 20 -> 17.
-(function(){
-  var body=document.getElementById('body');
-  var tweet=document.querySelector('.tweet');
-  var sizes=[23,20,17];
-  for(var i=0;i<sizes.length;i++){
-    body.style.fontSize=sizes[i]+'px';
-    if(tweet.offsetHeight<=@AVAIL@) break;
-  }
-})();
-</script>
 </body></html>"""
     repl = {
         "@BG@": theme["bg"], "@TEXT@": theme["text"], "@MUTED@": theme["muted"],
@@ -216,7 +307,7 @@ body{width:@CW@px;height:@CH@px;background:var(--bg);color:var(--text);
         "@CW@": str(CSS_W), "@CH@": str(CSS_H), "@AVAIL@": str(CSS_H - 20),
         "@AVATAR@": avatar_html(acct), "@DNAME@": esc(acct["display_name"]),
         "@BADGE@": badge, "@HANDLE@": esc(acct["handle"]),
-        "@BODY@": body, "@META@": meta, "@ACTIONS@": actions,
+        "@BODY@": body, "@MEDIA@": media, "@META@": meta, "@ACTIONS@": actions,
     }
     for k, v in repl.items():
         tpl = tpl.replace(k, v)
@@ -226,12 +317,11 @@ body{width:@CW@px;height:@CH@px;background:var(--bg);color:var(--text);
 def within_days(created_at, days):
     if not days:
         return True
-    try:
-        t = dt.datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-    except Exception:
-        return True
+    t = parse_date(created_at)
+    if t is None:
+        return True   # unparseable date -> don't silently drop
     now = dt.datetime.now(dt.timezone.utc)
-    return (now - t).days <= days
+    return 0 <= (now - t).days <= days
 
 
 def chunk(lst, size):
@@ -244,6 +334,7 @@ def main():
     ap.add_argument("--accounts", default="accounts.json")
     ap.add_argument("--out", default="out")
     ap.add_argument("--days", type=int, default=30, help="0 = no date filter")
+    ap.add_argument("--top", type=int, default=10, help="top posts per account (0 = all)")
     ap.add_argument("--max-per-carousel", type=int, default=10)
     ap.add_argument("--min-per-carousel", type=int, default=2)
     args = ap.parse_args()
@@ -285,17 +376,36 @@ def main():
         for h, plist in by_acct.items():
             acct = accounts[h]
             plist.sort(key=lambda p: int(p.get("impressions", 0)), reverse=True)
+            if args.top:
+                plist = plist[:args.top]
             acct_out = out_dir / h
             acct_out.mkdir(parents=True, exist_ok=True)
 
-            for ci, group in enumerate(chunk(plist, args.max_per_carousel), 1):
+            # Fetch media up front; drop posts with neither an image nor a caption.
+            print("@%s: fetching media for top %d post(s)..." % (h, len(plist)))
+            renderable = []
+            for post in plist:
+                tw = fetch_tweet(post["id"])
+                caption = (post.get("text") or "").strip()
+                if not tw.get("media_path") and not caption:
+                    print("  skip %s: no media and no caption" % post["id"])
+                    continue
+                renderable.append((post, tw))
+
+            for ci, group in enumerate(chunk(renderable, args.max_per_carousel), 1):
                 if len(group) < args.min_per_carousel:
                     print("  %s carousel %d has %d slide(s) (<%d) — HumanPost needs %d-10; "
-                          "will still render, fill or drop before queueing."
+                          "fill or drop before queueing."
                           % (h, ci, len(group), args.min_per_carousel, args.min_per_carousel))
                 slides = []
-                for si, post in enumerate(group, 1):
-                    page.set_content(build_html(post, acct), wait_until="load")
+                for si, (post, tw) in enumerate(group, 1):
+                    page.set_content(build_html(post, acct, tw), wait_until="load")
+                    # wait for the image to actually decode, THEN fit.
+                    page.wait_for_function(
+                        "() => { const i=document.getElementById('media');"
+                        " return !i || (i.complete && i.naturalHeight>0); }")
+                    page.evaluate(FIT_JS)
+                    page.wait_for_timeout(30)
                     fname = "%s_c%d_s%02d.png" % (h, ci, si)
                     fpath = acct_out / fname
                     page.screenshot(path=str(fpath))
