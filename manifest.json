@@ -4,7 +4,16 @@
     "display_name": "Tech Bro Memes",
     "carousel": 1,
     "caption": "just ship it",
-    "media_urls": [],
+    "media_urls": [
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/techbromemes/techbromemes_c1_s01.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/techbromemes/techbromemes_c1_s02.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/techbromemes/techbromemes_c1_s03.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/techbromemes/techbromemes_c1_s04.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/techbromemes/techbromemes_c1_s05.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/techbromemes/techbromemes_c1_s06.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/techbromemes/techbromemes_c1_s07.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/techbromemes/techbromemes_c1_s08.png"
+    ],
     "slides": [
       {
         "order": 1,
@@ -69,7 +78,16 @@
     "display_name": "literal memes",
     "carousel": 1,
     "caption": "literally",
-    "media_urls": [],
+    "media_urls": [
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/LiteralMem3s/LiteralMem3s_c1_s01.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/LiteralMem3s/LiteralMem3s_c1_s02.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/LiteralMem3s/LiteralMem3s_c1_s03.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/LiteralMem3s/LiteralMem3s_c1_s04.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/LiteralMem3s/LiteralMem3s_c1_s05.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/LiteralMem3s/LiteralMem3s_c1_s06.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/LiteralMem3s/LiteralMem3s_c1_s07.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/LiteralMem3s/LiteralMem3s_c1_s08.png"
+    ],
     "slides": [
       {
         "order": 1,
@@ -134,7 +152,16 @@
     "display_name": "old people online",
     "carousel": 1,
     "caption": "our parents",
-    "media_urls": [],
+    "media_urls": [
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/OldEldersonline/OldEldersonline_c1_s01.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/OldEldersonline/OldEldersonline_c1_s02.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/OldEldersonline/OldEldersonline_c1_s03.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/OldEldersonline/OldEldersonline_c1_s04.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/OldEldersonline/OldEldersonline_c1_s05.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/OldEldersonline/OldEldersonline_c1_s06.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/OldEldersonline/OldEldersonline_c1_s07.png",
+      "https://cdn.jsdelivr.net/gh/steverado/tweetcards@7467e6adb44f4ab8a657e94c069cd0c9dc0a21dc/out/OldEldersonline/OldEldersonline_c1_s08.png"
+    ],
     "slides": [
       {
         "order": 1,
