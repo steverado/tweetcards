@@ -108,8 +108,14 @@ def main():
 
         caption = acct.get("caption", "")
         media_urls = carousel["media_urls"]
-        print("[%s] queueing %s (%d slides, caption=%r)"
-              % (h, carousel["key"], len(media_urls), caption))
+        # Per-account fixed sound: HumanPost has no account-level default yet, so we
+        # attach the same specific sound to every create_post for this account.
+        sound = None
+        if acct.get("sound_url"):
+            sound = {"mode": "specific", "url": acct["sound_url"]}
+        print("[%s] queueing %s (%d slides, caption=%r, sound=%s)"
+              % (h, carousel["key"], len(media_urls), caption,
+                 acct.get("sound_url") or "none"))
         if args.dry_run:
             for u in media_urls:
                 print("    " + u)
@@ -125,9 +131,10 @@ def main():
             if not uid:
                 sys.exit("[%s] upload failed for %s: %r" % (h, url, res))
             upload_ids.append(uid)
-        post = mcp_call("create_post",
-                        {"media": upload_ids, "accountIds": [acct_id], "caption": caption},
-                        token)
+        post_args = {"media": upload_ids, "accountIds": [acct_id], "caption": caption}
+        if sound:
+            post_args["sound"] = sound
+        post = mcp_call("create_post", post_args, token)
         human_id = post.get("postId")
         print("    queued -> HumanPost post %s (status=%s)"
               % (human_id, post.get("status")))
