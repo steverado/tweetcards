@@ -70,6 +70,41 @@ python publish_github.py               # commit, push, write media_urls
 carousel of 2–10 images; slide order = post order. Fill each carousel's `caption` in
 `manifest.json` first.
 
+## Automation (daily, hands-off)
+
+Once slides exist, the pipeline runs itself: **one carousel per account per day** is
+queued to HumanPost by a GitHub Action, with **zero manual steps**. The split is
+deliberate — the fragile part (a real browser + X's syndication endpoint, which is
+flaky from datacenter IPs) runs **locally**; the cloud job is a tiny stdlib-only HTTP
+call, so CI needs no Playwright, no Chromium, and never sees `posts.json`.
+
+State lives in **`queue.json`**: `pending` carousels (rendered, hosted, waiting) and
+`posted` ones (already sent). Every meme's X post ID is tracked, so nothing is ever
+repeated.
+
+**Top up the queue (local, ~monthly).** Renders the next N carousels per account,
+skipping any meme already used, commits the PNGs, and appends them to `queue.json`:
+
+```bash
+python prerender.py --batches 14     # ~2 weeks of runway per account
+python prerender.py --dry-run        # render + preview, no commit
+```
+
+**Daily queueing (cloud, automatic).** `.github/workflows/daily.yml` runs
+`queue_daily.py` at 13:00 UTC. Per account it takes the oldest `pending` carousel,
+respects HumanPost's daily cap, uploads the slides, and `create_post`s them with the
+account's caption from `accounts.json`. It warns in the run log when an account's
+queue drops below 3 (time to run `prerender.py`). Trigger a run by hand anytime from
+the Actions tab (**Run workflow**), or test the selection locally:
+
+```bash
+HUMANPOST_TOKEN=ccb_live_... python queue_daily.py --dry-run
+```
+
+Setup (one time): the repo must be **public** (jsDelivr), and the HumanPost token is
+stored as the `HUMANPOST_TOKEN` GitHub Actions secret. Change the caption per account
+in `accounts.json`; change the schedule via the `cron:` line in the workflow.
+
 ## HumanPost MCP
 
 The connector uses a **static Bearer token**, which the claude.ai web "Add custom
@@ -89,10 +124,9 @@ config, not this repo).
 ## Status / to-do
 
 - [x] Real profile avatars in `avatars/` for all 3 accounts.
-- [x] techbromemes + LiteralMem3s CSVs processed; image pipeline verified end to end.
-- [ ] Export **OldEldersonline**'s analytics CSV and run step 1 (`--append`).
-- [ ] Add a **public** GitHub remote for step 3 (jsDelivr only serves public repos).
-- [ ] Add the HumanPost connector and verify `list_accounts`.
-- [ ] Fill each carousel's `caption` in `manifest.json` before queueing.
+- [x] All 3 CSVs processed; image pipeline verified end to end.
+- [x] Public GitHub remote + HumanPost connector; first 3 carousels queued.
+- [x] Daily automation live: `prerender.py` + `queue_daily.py` + GitHub Action.
+- [ ] Re-run `prerender.py` when the queue runs low (the Action warns you).
 
 Note: multi-image posts currently use the first image only. Videos use their poster frame.
