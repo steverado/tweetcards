@@ -1,0 +1,30 @@
+name: daily-carousel
+
+# Queues one pre-rendered carousel per account to HumanPost each day.
+# Rendering happens locally via prerender.py; this job only does HTTP + a queue.json
+# commit, so it needs no Playwright, no Chromium, and no posts.json.
+
+on:
+  schedule:
+    - cron: "0 13 * * *"   # 13:00 UTC daily (~9am ET / 6am PT). Change to taste.
+  workflow_dispatch: {}     # lets you run it on demand from the Actions tab
+
+concurrency:
+  group: daily-carousel
+  cancel-in-progress: false
+
+permissions:
+  contents: write           # so the job can commit the updated queue.json
+
+jobs:
+  queue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Queue today's carousels
+        env:
+          HUMANPOST_TOKEN: ${{ secrets.HUMANPOST_TOKEN }}
+        run: python queue_daily.py

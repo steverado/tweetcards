@@ -5,7 +5,9 @@
     "theme": "dark",
     "avatar": "avatars/techbromemes.png",
     "min_impressions": 0,
-    "verified": false
+    "verified": false,
+    "account_id": "cpjAmSuT1xvOs6oqTaa0",
+    "caption": "just ship it"
   },
   "LiteralMem3s": {
     "display_name": "literal memes",
@@ -13,7 +15,9 @@
     "theme": "dim",
     "avatar": "avatars/LiteralMem3s.png",
     "min_impressions": 0,
-    "verified": false
+    "verified": false,
+    "account_id": "MTrMrARdgYJx59GSial2",
+    "caption": "literally"
   },
   "OldEldersonline": {
     "display_name": "old people online",
@@ -21,6 +25,8 @@
     "theme": "light",
     "avatar": "avatars/OldEldersonline.png",
     "min_impressions": 0,
-    "verified": false
+    "verified": false,
+    "account_id": "mnDGXmBet5lyz6o8pFOH",
+    "caption": "our parents"
   }
 }
